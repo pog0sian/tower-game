@@ -1,0 +1,28 @@
+name: Deploy Tower Game
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            cd /docker/tower-game
+
+            if [ ! -d ".git" ]; then
+              git clone https://github.com/pog0sian/tower-game.git .
+            fi
+
+            git pull
+
+            docker compose up -d --build

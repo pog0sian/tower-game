@@ -1,4 +1,4 @@
-name: tower-game
+version: "3.8"
 
 services:
   postgres:
@@ -11,82 +11,61 @@ services:
       POSTGRES_PASSWORD: postgres
     volumes:
       - tower_game_pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d tower_game"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-      start_period: 5s
     networks:
       - tower-game
 
   backend:
     build:
       context: ./backend
-      dockerfile: Dockerfile
     container_name: tower-game-backend
     restart: unless-stopped
     environment:
       NODE_ENV: production
-      COOKIE_SECURE: "false"
       PORT: 3001
       DATABASE_URL: postgres://postgres:postgres@postgres:5432/tower_game
-      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost}
-      GAME_PROOF_SECRET: ${GAME_PROOF_SECRET:-tower_game_local_dev_secret_change_me_123456}
-    expose:
-      - "3001"
+      CORS_ORIGIN: https://tower.your-domain.com
     depends_on:
-      postgres:
-        condition: service_healthy
-    healthcheck:
-      test:
-        [
-          "CMD",
-          "bun",
-          "-e",
-          "fetch('http://127.0.0.1:3001/api/health').then((r)=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
-        ]
-      interval: 10s
-      timeout: 5s
-      retries: 12
-      start_period: 20s
+      - postgres
     networks:
       - tower-game
+      - traefik
 
   frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile
-      args:
-        VITE_API_URL: /api
     container_name: tower-game-frontend
     restart: unless-stopped
-    environment:
-      PORT: 80
-      API_ORIGIN: http://backend:3001
     depends_on:
-      backend:
-        condition: service_healthy
-    ports:
-      - "80:80"
-    healthcheck:
-      test:
-        [
-          "CMD",
-          "bun",
-          "-e",
-          "fetch('http://127.0.0.1/health').then((r)=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
-        ]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 10s
+      - backend
+
+    labels:
+      - "traefik.enable=true"
+
+      # HTTP → HTTPS
+      - "traefik.http.routers.tower.rule=Host(`tower.your-domain.com`)"
+      - "traefik.http.routers.tower.entrypoints=web"
+      - "traefik.http.routers.tower.middlewares=redirect-to-https"
+
+      # HTTPS
+      - "traefik.http.routers.tower-secure.rule=Host(`tower.your-domain.com`)"
+      - "traefik.http.routers.tower-secure.entrypoints=websecure"
+      - "traefik.http.routers.tower-secure.tls=true"
+      - "traefik.http.routers.tower-secure.tls.certresolver=letsencrypt"
+
+      # порт внутри контейнера
+      - "traefik.http.services.tower.loadbalancer.server.port=80"
+
+      # redirect middleware
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+
     networks:
       - tower-game
+      - traefik
 
 volumes:
   tower_game_pgdata:
 
 networks:
   tower-game:
-    driver: bridge
+  traefik:
+    external: true
