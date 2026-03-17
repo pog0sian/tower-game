@@ -23,7 +23,8 @@ services:
       NODE_ENV: production
       PORT: 3001
       DATABASE_URL: postgres://postgres:postgres@postgres:5432/tower_game
-      CORS_ORIGIN: https://tower.your-domain.com
+      CORS_ORIGIN: https://tower.i-digit.me
+      GAME_PROOF_SECRET: tower_game_local_dev_secret_change_me_123456
     depends_on:
       - postgres
     networks:
