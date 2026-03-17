@@ -69,3 +69,4 @@ networks:
   tower-game:
   traefik:
     external: true
+
