@@ -42,12 +42,12 @@ services:
       - "traefik.enable=true"
 
       # HTTP → HTTPS
-      - "traefik.http.routers.tower.rule=Host(`tower.your-domain.com`)"
+      - "traefik.http.routers.tower.rule=Host(`tower.i-digit.me`)"
       - "traefik.http.routers.tower.entrypoints=web"
       - "traefik.http.routers.tower.middlewares=redirect-to-https"
 
       # HTTPS
-      - "traefik.http.routers.tower-secure.rule=Host(`tower.your-domain.com`)"
+      - "traefik.http.routers.tower-secure.rule=Host(`tower.i-digit.me`)"
       - "traefik.http.routers.tower-secure.entrypoints=websecure"
       - "traefik.http.routers.tower-secure.tls=true"
       - "traefik.http.routers.tower-secure.tls.certresolver=letsencrypt"
@@ -69,4 +69,3 @@ networks:
   tower-game:
   traefik:
     external: true
-
